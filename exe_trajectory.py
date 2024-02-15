@@ -6,7 +6,7 @@ import yaml
 import os
 import pandas as pd
 
-method = 'forecasting'
+method = 'imputation'
 default_config = "base_forecasting.yaml" if method=='forecasting' else "base.yaml"
 datafolder='/home/tompoek/waymo-processed/v1/Selected-Car-Following-CF-pairs-and-their-trajectories'
 datafile='tail_5segments.csv'

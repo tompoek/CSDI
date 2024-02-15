@@ -164,25 +164,25 @@ class Traj_Imputation_Dataset(Dataset):
         df_gt = df.copy()
         if mode == "test":
             for i in range(0,10):
-                # df_gt.loc[start_date_hour_minute+'0'+str(i)+'.3':start_date_hour_minute+'0'+str(i)+'.5',['filter_accer']] = np.nan
-                # df_gt.loc[start_date_hour_minute+'0'+str(i)+'.4':start_date_hour_minute+'0'+str(i)+'.6',['filter_speed']] = np.nan
-                # df_gt.loc[start_date_hour_minute+'0'+str(i)+'.5':start_date_hour_minute+'0'+str(i)+'.7',['filter_pos']] = np.nan
+                # df_gt.loc[start_date_hour_minute+'0'+str(i)+'.3':start_date_hour_minute+'0'+str(i)+'.5',['processed_accer']] = np.nan
+                # df_gt.loc[start_date_hour_minute+'0'+str(i)+'.4':start_date_hour_minute+'0'+str(i)+'.6',['processed_speed']] = np.nan
+                # df_gt.loc[start_date_hour_minute+'0'+str(i)+'.5':start_date_hour_minute+'0'+str(i)+'.7',['processed_position']] = np.nan
                 df_gt.loc[(df_gt.index>start_date_hour_minute+'0'+str(i)+'.3')*(df_gt.index<start_date_hour_minute+'0'+str(i)+'.5'),
-                          ['filter_accer']] = np.nan
+                          ['processed_accer']] = np.nan
                 df_gt.loc[(df_gt.index>start_date_hour_minute+'0'+str(i)+'.4')*(df_gt.index<start_date_hour_minute+'0'+str(i)+'.6'),
-                          ['filter_speed']] = np.nan
+                          ['processed_speed']] = np.nan
                 df_gt.loc[(df_gt.index>start_date_hour_minute+'0'+str(i)+'.5')*(df_gt.index<start_date_hour_minute+'0'+str(i)+'.7'),
-                          ['filter_pos']] = np.nan
+                          ['processed_position']] = np.nan
             for i in range(10,20):
-                # df_gt.loc[start_date_hour_minute+str(i)+'.3':start_date_hour_minute+str(i)+'.5',['filter_accer']] = np.nan
-                # df_gt.loc[start_date_hour_minute+str(i)+'.4':start_date_hour_minute+str(i)+'.6',['filter_speed']] = np.nan
-                # df_gt.loc[start_date_hour_minute+str(i)+'.5':start_date_hour_minute+str(i)+'.7',['filter_pos']] = np.nan
+                # df_gt.loc[start_date_hour_minute+str(i)+'.3':start_date_hour_minute+str(i)+'.5',['processed_accer']] = np.nan
+                # df_gt.loc[start_date_hour_minute+str(i)+'.4':start_date_hour_minute+str(i)+'.6',['processed_speed']] = np.nan
+                # df_gt.loc[start_date_hour_minute+str(i)+'.5':start_date_hour_minute+str(i)+'.7',['processed_position']] = np.nan
                 df_gt.loc[(df_gt.index>start_date_hour_minute+str(i)+'.3')*(df_gt.index<start_date_hour_minute+str(i)+'.5'),
-                          ['filter_accer']] = np.nan
+                          ['processed_accer']] = np.nan
                 df_gt.loc[(df_gt.index>start_date_hour_minute+str(i)+'.4')*(df_gt.index<start_date_hour_minute+str(i)+'.6'),
-                          ['filter_speed']] = np.nan
+                          ['processed_speed']] = np.nan
                 df_gt.loc[(df_gt.index>start_date_hour_minute+str(i)+'.5')*(df_gt.index<start_date_hour_minute+str(i)+'.7'),
-                          ['filter_pos']] = np.nan
+                          ['processed_position']] = np.nan
 
         for i in range(len(second_list)):
             current_df = df[df.index.second == second_list[i]]
