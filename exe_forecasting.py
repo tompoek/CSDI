@@ -26,7 +26,7 @@ with open(path, "r") as f:
     config = yaml.safe_load(f)
 
 if args.datatype == 'electricity':
-    target_dim = 370
+    target_dim = 3
 
 config["model"]["is_unconditional"] = args.unconditional
 

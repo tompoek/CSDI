@@ -2,8 +2,8 @@
 #type: args
 
 train:
-  epochs: 100
-  batch_size: 8 
+  epochs: 1
+  batch_size: 10 
   lr: 1.0e-3
   itr_per_epoch: 1.0e+8
 
@@ -23,4 +23,4 @@ model:
   timeemb: 128
   featureemb: 16
   target_strategy: "test"
-  num_sample_features: 64
+  num_sample_features: 3
