@@ -25,6 +25,13 @@ class Forecasting_Dataset(Dataset):
         with open(paths, 'rb') as f:
             self.mean_data, self.std_data = pickle.load(f)
             
+        subset_length = 24*22
+        feature_length = 3
+        self.main_data = self.main_data[:subset_length,:feature_length]
+        self.mask_data = self.mask_data[:subset_length,:feature_length]
+        self.mean_data = self.mean_data[:feature_length]
+        self.std_data = self.std_data[:feature_length]
+        
         self.main_data = (self.main_data - self.mean_data) / self.std_data
 
 
