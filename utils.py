@@ -211,3 +211,113 @@ def evaluate(model, test_loader, nsample=100, scaler=1, mean_scaler=0, foldernam
                 print("MAE:", mae_total / evalpoints_total)
                 print("CRPS:", CRPS)
                 print("CRPS_sum:", CRPS_sum)
+
+
+class Evaluator():
+    def __init__(self, foldername, nsample, mean_scaler=0, scaler=1):
+        super(Evaluator, self).__init__()
+        self.foldername = foldername
+        self.nsample = nsample
+        self.mean_scaler = mean_scaler
+        self.scaler = scaler
+        self.mse_total = 0
+        self.mae_total = 0
+        self.evalpoints_total = 0
+
+    def evaluate_segment(self, model, test_loader, segment_id):
+        with torch.no_grad():
+            model.eval()
+
+            all_target = []
+            all_observed_point = []
+            all_observed_time = []
+            all_evalpoint = []
+            all_generated_samples = []
+            with tqdm(test_loader, mininterval=5.0, maxinterval=50.0) as it:
+                for batch_no, test_batch in enumerate(it, start=1):
+                    output = model.evaluate(test_batch, self.nsample)
+
+                    samples, c_target, eval_points, observed_points, observed_time = output
+                    samples = samples.permute(0, 1, 3, 2)  # (B,nsample,L,K)
+                    c_target = c_target.permute(0, 2, 1)  # (B,L,K)
+                    eval_points = eval_points.permute(0, 2, 1)
+                    observed_points = observed_points.permute(0, 2, 1)
+
+                    samples_median = samples.median(dim=1)
+                    all_target.append(c_target)
+                    all_evalpoint.append(eval_points)
+                    all_observed_point.append(observed_points)
+                    all_observed_time.append(observed_time)
+                    all_generated_samples.append(samples)
+
+                    mse_current = (
+                        ((samples_median.values - c_target) * eval_points) ** 2
+                    ) * (self.scaler ** 2)
+                    mae_current = (
+                        torch.abs((samples_median.values - c_target) * eval_points) 
+                    ) * self.scaler
+
+                    self.mse_total += mse_current.sum().item()
+                    self.mae_total += mae_current.sum().item()
+                    self.evalpoints_total += eval_points.sum().item()
+
+                    it.set_postfix(
+                        ordered_dict={
+                            "SSE": self.mse_total,
+                            "SAE": self.mae_total,
+                            "Batch_No": batch_no,
+                        },
+                        refresh=True,
+                    )
+            self.save_generated_outputs_of_one_segment(segment_id=segment_id,
+                                                       all_target=all_target,
+                                                       all_evalpoint=all_evalpoint,
+                                                       all_observed_point=all_observed_point,
+                                                       all_observed_time=all_observed_time,
+                                                       all_generated_samples=all_generated_samples)
+
+    def save_generated_outputs_of_one_segment(self,
+                                              segment_id,
+                                              all_target,
+                                              all_evalpoint,
+                                              all_observed_point,
+                                              all_observed_time,
+                                              all_generated_samples): # for visualization
+        with open(
+            self.foldername + "/segment" + str(segment_id) + "_generated_outputs_nsample" + str(self.nsample) + ".pk", "wb"
+        ) as f:
+            all_target = torch.cat(all_target, dim=0)
+            all_evalpoint = torch.cat(all_evalpoint, dim=0)
+            all_observed_point = torch.cat(all_observed_point, dim=0)
+            all_observed_time = torch.cat(all_observed_time, dim=0)
+            all_generated_samples = torch.cat(all_generated_samples, dim=0)
+
+            pickle.dump(
+                [
+                    all_generated_samples,
+                    all_target,
+                    all_evalpoint,
+                    all_observed_point,
+                    all_observed_time,
+                    self.scaler,
+                    self.mean_scaler,
+                ],
+                f,
+            )
+
+    def save_evaluated_metrics_of_all_segments(self):
+        reserved_metric = 0.
+        with open(
+            self.foldername + "/result_nsample" + str(self.nsample) + ".pk", "wb"
+        ) as f:
+            pickle.dump(
+                [
+                    np.sqrt(self.mse_total / self.evalpoints_total),
+                    self.mae_total / self.evalpoints_total,
+                    reserved_metric,
+                ],
+                f,
+            )
+            print("RMSE:", np.sqrt(self.mse_total / self.evalpoints_total))
+            print("MAE:", self.mae_total / self.evalpoints_total)
+            

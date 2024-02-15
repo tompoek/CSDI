@@ -8,10 +8,10 @@ import torch
 class Traj_Forecasting_Dataset(Dataset):
     def __init__(self,
                  start_segment_idx, local_time_idx,
-                 datafolder='/home/tompoek/waymo-processed/v1/Selected-Car-Following-CF-pairs-and-their-trajectories',
-                 datafile='all_segment_paired_car_following_trajectory(position-based, speed-based, processed).csv',
-                 noisy_features=['position_based_position','position_based_speed','position_based_accer'],
-                 clean_features=['processed_position','processed_speed','processed_accer'],
+                 datafolder,
+                 datafile,
+                 noisy_features,
+                 clean_features,
                  validindex=0,
                  mask_percentage=0.5,
                  mode="train"):
@@ -106,10 +106,10 @@ class Traj_Forecasting_Dataset(Dataset):
 class Traj_Imputation_Dataset(Dataset):
     def __init__(self,
                  start_segment_idx, local_time_idx,
-                 datafolder='~/waymo-processed/v1/Selected-Car-Following-CF-pairs-and-their-trajectories',
-                 datafile='all_segment_paired_car_following_trajectory(position-based, speed-based, processed).csv',
-                 noisy_features=['position_based_position','position_based_speed','position_based_accer'],
-                 clean_features=['processed_position','processed_speed','processed_accer'],
+                 datafolder,
+                 datafile,
+                 noisy_features,
+                 clean_features,
                  eval_length=10, target_dim=3, validindex=0,
                  mode="train"):
         self.eval_length = eval_length
@@ -138,51 +138,24 @@ class Traj_Imputation_Dataset(Dataset):
         self.use_index = []  # to separate train/valid/test
         self.cut_length = []  # excluded from evaluation targets
 
-        # df = pd.read_csv('~/waymo-processed/v3/all_seg_paired_cf_trj_final.csv',
-        #                  usecols=['local_time','filter_pos','filter_speed','filter_accer'],
-        #                  skiprows=range(1,1+start_segment_idx), nrows=local_time_idx-start_segment_idx,
-        #                  )
         df = pd.read_csv(datafolder+'/'+datafile,
                          usecols=['local_time']+clean_features,
                          skiprows=range(1,1+start_segment_idx), nrows=local_time_idx-start_segment_idx,
                          )
+        df_gt = pd.read_csv(datafolder+'/'+datafile,
+                            usecols=noisy_features,
+                            skiprows=range(1,1+start_segment_idx), nrows=local_time_idx-start_segment_idx,
+                            )
+        #TODO: detect outliers within (2secs) time window
+        df_gt[df_gt['position_based_accer'] < -8] = np.nan # outlier threshold defined by waymo_processed paper
+        df_gt[df_gt['position_based_accer'] > 5] = np.nan # outlier threshold defined by waymo_processed paper
         start_date_hour_minute = '2017-01-01T00:00:' # arbitrarily set a start time
         df['datetime'] = np.datetime64(start_date_hour_minute+'00.1') + pd.to_timedelta(df['local_time'], unit='S')
-        # df['datetime'] = np.datetime64(start_date_hour_minute+'00.1')
-        # df['local_time'] = pd.to_timedelta(df['local_time'], unit='S')
-        # start_segment_idx = 0
-        # for i in range(1, df.shape[0]):
-        #     if df.loc[i,'local_time'] > df.loc[i-1,'local_time']:
-        #         df.loc[i,'datetime'] = df.loc[start_segment_idx,'datetime'] + df.loc[i,'local_time']
-        #     else:
-        #         df.loc[i,'datetime'] = df.loc[start_segment_idx,'datetime'] + np.timedelta64(1,'D')
-        #         start_segment_idx = i
-        
         df.drop(['local_time'],axis=1,inplace=True)
-        df.set_index('datetime',inplace=True)
 
-        df_gt = df.copy()
-        if mode == "test":
-            for i in range(0,10):
-                # df_gt.loc[start_date_hour_minute+'0'+str(i)+'.3':start_date_hour_minute+'0'+str(i)+'.5',['processed_accer']] = np.nan
-                # df_gt.loc[start_date_hour_minute+'0'+str(i)+'.4':start_date_hour_minute+'0'+str(i)+'.6',['processed_speed']] = np.nan
-                # df_gt.loc[start_date_hour_minute+'0'+str(i)+'.5':start_date_hour_minute+'0'+str(i)+'.7',['processed_position']] = np.nan
-                df_gt.loc[(df_gt.index>start_date_hour_minute+'0'+str(i)+'.3')*(df_gt.index<start_date_hour_minute+'0'+str(i)+'.5'),
-                          ['processed_accer']] = np.nan
-                df_gt.loc[(df_gt.index>start_date_hour_minute+'0'+str(i)+'.4')*(df_gt.index<start_date_hour_minute+'0'+str(i)+'.6'),
-                          ['processed_speed']] = np.nan
-                df_gt.loc[(df_gt.index>start_date_hour_minute+'0'+str(i)+'.5')*(df_gt.index<start_date_hour_minute+'0'+str(i)+'.7'),
-                          ['processed_position']] = np.nan
-            for i in range(10,20):
-                # df_gt.loc[start_date_hour_minute+str(i)+'.3':start_date_hour_minute+str(i)+'.5',['processed_accer']] = np.nan
-                # df_gt.loc[start_date_hour_minute+str(i)+'.4':start_date_hour_minute+str(i)+'.6',['processed_speed']] = np.nan
-                # df_gt.loc[start_date_hour_minute+str(i)+'.5':start_date_hour_minute+str(i)+'.7',['processed_position']] = np.nan
-                df_gt.loc[(df_gt.index>start_date_hour_minute+str(i)+'.3')*(df_gt.index<start_date_hour_minute+str(i)+'.5'),
-                          ['processed_accer']] = np.nan
-                df_gt.loc[(df_gt.index>start_date_hour_minute+str(i)+'.4')*(df_gt.index<start_date_hour_minute+str(i)+'.6'),
-                          ['processed_speed']] = np.nan
-                df_gt.loc[(df_gt.index>start_date_hour_minute+str(i)+'.5')*(df_gt.index<start_date_hour_minute+str(i)+'.7'),
-                          ['processed_position']] = np.nan
+        df_gt['datetime'] = df['datetime']
+        df.set_index('datetime',inplace=True)
+        df_gt.set_index('datetime',inplace=True)
 
         for i in range(len(second_list)):
             current_df = df[df.index.second == second_list[i]]
@@ -280,21 +253,29 @@ class Traj_Imputation_Dataset(Dataset):
         return len(self.use_index)
 
 
-def get_dataloader(batch_size, method, device, mode, start_segment_idx, local_time_idx, validindex=0):
+def get_dataloader(batch_size, method, device, mode,
+                   start_segment_idx, local_time_idx,
+                   datafolder, datafile, noisy_features, clean_features,
+                   validindex=0):
     
     shuffle = True if mode=="train" else False
     if method=='forecasting':
         dataset = Traj_Forecasting_Dataset(mode=mode,
-                                start_segment_idx=start_segment_idx, local_time_idx=local_time_idx)
+                                           start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
+                                           datafolder=datafolder, datafile=datafile,
+                                           noisy_features=noisy_features, clean_features=clean_features)
         mean_data = torch.from_numpy(dataset.mean_data).to(device).float()
         std_data = torch.from_numpy(dataset.std_data).to(device).float()
     else:
         dataset = Traj_Imputation_Dataset(mode=mode, validindex=validindex,
-                                start_segment_idx=start_segment_idx, local_time_idx=local_time_idx)
+                                          start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
+                                          datafolder=datafolder, datafile=datafile,
+                                          noisy_features=noisy_features, clean_features=clean_features)
         mean_data = torch.zeros(dataset.target_dim).to(device).float()
         std_data = torch.ones(dataset.target_dim).to(device).float()
     data_loader = DataLoader(
         dataset, batch_size=batch_size, num_workers=1, shuffle=shuffle
     )
 
+    #TODO: mean_data, std_data may not be needed for training, and evaluator has already loaded mean & std
     return data_loader, mean_data, std_data

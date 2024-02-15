@@ -5,17 +5,20 @@ import json
 import yaml
 import os
 import pandas as pd
+import pickle
 
 method = 'imputation'
 default_config = "base_forecasting.yaml" if method=='forecasting' else "base.yaml"
 datafolder='/home/tompoek/waymo-processed/v1/Selected-Car-Following-CF-pairs-and-their-trajectories'
+# datafile='all_segment_paired_car_following_trajectory(position-based, speed-based, processed).csv'
 datafile='tail_5segments.csv'
+meanstdfile = 'mean_std.pk'
 noisy_features = ['position_based_position','position_based_speed','position_based_accer']
 clean_features = ['processed_position','processed_speed','processed_accer']
 
 from dataset_trajectory import get_dataloader
 from main_model import CSDI_Traj_Imputation, CSDI_Traj_Forecasting
-from utils import train, evaluate
+from utils import train, evaluate, Evaluator
 
 parser = argparse.ArgumentParser(description="CSDI")
 parser.add_argument("--config", type=str, default=default_config)
@@ -59,46 +62,74 @@ local_time_np = pd.read_csv(datafolder+'/'+datafile,
                             usecols=['local_time'],
                             ).to_numpy().reshape(-1)
 start_segment_idx = 0
-segment_number = 1
+segment_id = 1
+
+n_test_segments = 3 # number of segments reserved for testing
+
+with open(datafolder+'/'+meanstdfile, 'rb') as f:
+    mean_data, std_data = pickle.load(f)
+    mean_data = torch.from_numpy(mean_data).to(args.device).float()
+    std_data = torch.from_numpy(std_data).to(args.device).float()
+
+if method=='forecasting':
+    evaluator = Evaluator(foldername, args.nsample,
+                          mean_scaler=mean_data, scaler=std_data)
+else:
+    evaluator = Evaluator(foldername, args.nsample)
 
 for local_time_idx in range(1, local_time_np.shape[0]):
     
     if local_time_idx == local_time_np.shape[0]-1:
         local_time_idx += 1
-        test_loader, mean_data, std_data = get_dataloader(
+        print(f"Testing at Segment No. {segment_id}")
+        test_loader, _, _ = get_dataloader(
             config["train"]["batch_size"], method=method, device=args.device,
             mode="test",
-            start_segment_idx=start_segment_idx, local_time_idx=local_time_idx
+            start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
+            datafolder=datafolder, datafile=datafile,
+            noisy_features=noisy_features, clean_features=clean_features
         )
+        evaluator.evaluate_segment(model, test_loader, segment_id)
 
     elif local_time_np[local_time_idx] > local_time_np[local_time_idx-1]:
         continue
     
     else:
-        print(f"Segment No. {segment_number}")
-        train_loader, mean_data, std_data = get_dataloader(
-            config["train"]["batch_size"], method=method, device=args.device,
-            mode="train",
-            start_segment_idx=start_segment_idx, local_time_idx=local_time_idx
-        )
-        valid_loader, mean_data, std_data = get_dataloader(
-            config["train"]["batch_size"], method=method, device=args.device,
-            mode="valid",
-            start_segment_idx=start_segment_idx, local_time_idx=local_time_idx
-        )
+        if (local_time_np.shape[0]-local_time_idx) <= 199*(n_test_segments-1):
+            print(f"Testing at Segment No. {segment_id}")
+            test_loader, _, _ = get_dataloader(
+                config["train"]["batch_size"], method=method, device=args.device,
+                mode="test",
+                start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
+                datafolder=datafolder, datafile=datafile,
+                noisy_features=noisy_features, clean_features=clean_features
+            )
+            evaluator.evaluate_segment(model, test_loader, segment_id)
+        else:
+            print(f"Training at Segment No. {segment_id}")
+            train_loader, mean_data, std_data = get_dataloader(
+                config["train"]["batch_size"], method=method, device=args.device,
+                mode="train",
+                start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
+                datafolder=datafolder, datafile=datafile,
+                noisy_features=noisy_features, clean_features=clean_features
+            )
+            valid_loader, mean_data, std_data = get_dataloader(
+                config["train"]["batch_size"], method=method, device=args.device,
+                mode="valid",
+                start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
+                datafolder=datafolder, datafile=datafile,
+                noisy_features=noisy_features, clean_features=clean_features
+            )
+            train(model, config["train"], train_loader, valid_loader=valid_loader, foldername=foldername)
 
-        train(model, config["train"], train_loader, valid_loader=valid_loader, foldername=foldername)
-
-        segment_number += 1
+        segment_id += 1
         start_segment_idx = local_time_idx
+
+evaluator.save_evaluated_metrics_of_all_segments()
 
 # if args.modelfolder == "":
 #     train(model, config["train"], train_loader, valid_loader=valid_loader, foldername=foldername)
 # else:
 #     model.load_state_dict(torch.load("./save/" + args.modelfolder + "/model.pth"))
 
-if method=='forecasting':
-    evaluate(model, test_loader, nsample=args.nsample, foldername=foldername,
-             mean_scaler=mean_data, scaler=std_data)
-else:
-    evaluate(model, test_loader, nsample=args.nsample, foldername=foldername)
