@@ -10,6 +10,7 @@ class Traj_Forecasting_Dataset(Dataset):
                  start_segment_idx, local_time_idx,
                  datafolder,
                  datafile,
+                 meanstdfile,
                  noisy_features,
                  clean_features,
                  validindex=0,
@@ -56,7 +57,6 @@ class Traj_Forecasting_Dataset(Dataset):
             mask[:int(mask_percentage*self.main_data.shape[0])] = 1
             np.random.Generator(np.random.PCG64(seed=42)).shuffle(mask)
             self.mask_data = np.repeat(mask.reshape(-1,1),repeats=self.main_data.shape[1],axis=1)
-            meanstdfile = 'mean_std.pk'
             with open(datafolder+'/'+meanstdfile, 'rb') as f:
                 self.mean_data, self.std_data = pickle.load(f)
             
@@ -265,7 +265,7 @@ class Traj_Imputation_Dataset(Dataset):
 
 def get_dataloader(batch_size, method, device, mode,
                    start_segment_idx, local_time_idx,
-                   datafolder, datafile, noisy_features, clean_features,
+                   datafolder, datafile, meanstdfile, noisy_features, clean_features,
                    validindex=0):
     
     shuffle = True if mode=="train" else False
@@ -273,19 +273,15 @@ def get_dataloader(batch_size, method, device, mode,
         dataset = Traj_Forecasting_Dataset(mode=mode,
                                            start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
                                            datafolder=datafolder, datafile=datafile,
+                                           meanstdfile=meanstdfile,
                                            noisy_features=noisy_features, clean_features=clean_features)
-        mean_data = torch.from_numpy(dataset.mean_data).to(device).float()
-        std_data = torch.from_numpy(dataset.std_data).to(device).float()
     else:
         dataset = Traj_Imputation_Dataset(mode=mode, validindex=validindex,
                                           start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
                                           datafolder=datafolder, datafile=datafile,
                                           noisy_features=noisy_features, clean_features=clean_features)
-        mean_data = torch.zeros(dataset.target_dim).to(device).float()
-        std_data = torch.ones(dataset.target_dim).to(device).float()
     data_loader = DataLoader(
         dataset, batch_size=batch_size, num_workers=1, shuffle=shuffle
     )
 
-    #TODO: mean_data, std_data may not be needed for training, and evaluator has already loaded mean & std
-    return data_loader, mean_data, std_data
+    return data_loader

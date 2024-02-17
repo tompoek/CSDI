@@ -7,7 +7,7 @@ import os
 import pandas as pd
 import pickle
 
-method = 'imputation'
+method = 'forecasting'
 default_config = "base_forecasting.yaml" if method=='forecasting' else "base.yaml"
 datafolder='/home/tompoek/waymo-processed/v1/Selected-Car-Following-CF-pairs-and-their-trajectories'
 # datafile='all_segment_paired_car_following_trajectory(position-based, speed-based, processed).csv'
@@ -82,11 +82,11 @@ for local_time_idx in range(1, local_time_np.shape[0]):
     if local_time_idx == local_time_np.shape[0]-1:
         local_time_idx += 1
         print(f"Testing at Segment No. {segment_id}")
-        test_loader, _, _ = get_dataloader(
+        test_loader = get_dataloader(
             config["train"]["batch_size"], method=method, device=args.device,
             mode="test",
             start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
-            datafolder=datafolder, datafile=datafile,
+            datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
             noisy_features=noisy_features, clean_features=clean_features
         )
         evaluator.evaluate_segment(model, test_loader, segment_id)
@@ -97,28 +97,28 @@ for local_time_idx in range(1, local_time_np.shape[0]):
     else:
         if (local_time_np.shape[0]-local_time_idx) <= 199*(n_test_segments-1):
             print(f"Testing at Segment No. {segment_id}")
-            test_loader, _, _ = get_dataloader(
+            test_loader = get_dataloader(
                 config["train"]["batch_size"], method=method, device=args.device,
                 mode="test",
                 start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
-                datafolder=datafolder, datafile=datafile,
+                datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
                 noisy_features=noisy_features, clean_features=clean_features
             )
             evaluator.evaluate_segment(model, test_loader, segment_id)
         else:
             print(f"Training at Segment No. {segment_id}")
-            train_loader, mean_data, std_data = get_dataloader(
+            train_loader = get_dataloader(
                 config["train"]["batch_size"], method=method, device=args.device,
                 mode="train",
                 start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
-                datafolder=datafolder, datafile=datafile,
+                datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
                 noisy_features=noisy_features, clean_features=clean_features
             )
-            valid_loader, mean_data, std_data = get_dataloader(
+            valid_loader = get_dataloader(
                 config["train"]["batch_size"], method=method, device=args.device,
                 mode="valid",
                 start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
-                datafolder=datafolder, datafile=datafile,
+                datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
                 noisy_features=noisy_features, clean_features=clean_features
             )
             train(model, config["train"], train_loader, valid_loader=valid_loader, foldername=foldername)
