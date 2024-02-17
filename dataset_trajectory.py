@@ -17,74 +17,33 @@ class Traj_Forecasting_Dataset(Dataset):
                  mask_percentage=0.5,
                  mode="train"):
 
-        datatype = 'trajectory'
-        if datatype == 'electricity':
-            self.history_length = 24*7
-            self.pred_length = 24
+        self.pred_length = 10
+        self.history_length = self.pred_length*4
 
-            datafolder = './data/electricity_nips'
-            self.test_length = 24*7
-            self.valid_length = 24*5
+        self.valid_length = self.pred_length*2
 
-            paths=datafolder+'/data.pkl' 
-            #shape: (T x N)
-            #mask_data is usually filled by 1
-            with open(paths, 'rb') as f:
-                self.main_data, self.mask_data = pickle.load(f)
-            paths=datafolder+'/meanstd.pkl'
-            with open(paths, 'rb') as f:
-                self.mean_data, self.std_data = pickle.load(f)
-
-            subset_length = 24*22
-            feature_length = 3
-            self.main_data = self.main_data[:subset_length,:feature_length]
-            self.mask_data = self.mask_data[:subset_length,:feature_length]
-            self.mean_data = self.mean_data[:feature_length]
-            self.std_data = self.std_data[:feature_length]
-        else:
-            self.pred_length = 10
-            self.history_length = self.pred_length*4
-
-            self.valid_length = self.pred_length*2
-
-            df = pd.read_csv(datafolder+'/'+datafile,
-                            usecols=['local_time']+clean_features,
-                            skiprows=range(1,1+start_segment_idx), nrows=local_time_idx-start_segment_idx,
-                            )
-            df[['processed_position']] -= df[['processed_position']].iloc[0] # set all segments' initial position to 0
-            self.main_data = df[clean_features].to_numpy()
-            mask = np.zeros(self.main_data.shape[0])
-            mask[:int(mask_percentage*self.main_data.shape[0])] = 1
-            np.random.Generator(np.random.PCG64(seed=42)).shuffle(mask)
-            self.mask_data = np.repeat(mask.reshape(-1,1),repeats=self.main_data.shape[1],axis=1)
-            with open(datafolder+'/'+meanstdfile, 'rb') as f:
-                self.mean_data, self.std_data = pickle.load(f)
+        df = pd.read_csv(datafolder+'/'+datafile,
+                        usecols=['local_time']+clean_features,
+                        skiprows=range(1,1+start_segment_idx), nrows=local_time_idx-start_segment_idx,
+                        )
+        df[['processed_position']] -= df[['processed_position']].iloc[0] # set all segments' initial position to 0
+        self.main_data = df[clean_features].to_numpy()
+        mask = np.zeros(self.main_data.shape[0])
+        mask[:int(mask_percentage*self.main_data.shape[0])] = 1
+        np.random.Generator(np.random.PCG64(seed=42)).shuffle(mask)
+        self.mask_data = np.repeat(mask.reshape(-1,1),repeats=self.main_data.shape[1],axis=1)
+        with open(datafolder+'/'+meanstdfile, 'rb') as f:
+            self.mean_data, self.std_data = pickle.load(f)
             
         self.seq_length = self.history_length + self.pred_length
         self.main_data = (self.main_data - self.mean_data) / self.std_data
 
-
-        if datatype=='electricity':
-            total_length = len(self.main_data)
-            if mode == 'train': 
-                start = 0
-                end = total_length - self.seq_length - self.valid_length - self.test_length + 1
-                self.use_index = np.arange(start,end,1)
-            if mode == 'valid': #valid
-                start = total_length - self.seq_length - self.valid_length - self.test_length + self.pred_length
-                end = total_length - self.seq_length - self.test_length + self.pred_length
-                self.use_index = np.arange(start,end,self.pred_length)
-            if mode == 'test': #test
-                start = total_length - self.seq_length - self.test_length + self.pred_length
-                end = total_length - self.seq_length + self.pred_length
-                self.use_index = np.arange(start,end,self.pred_length)
-        else:
-            if mode == 'train':
-                self.use_index = np.arange(0, len(self.main_data)-self.seq_length, 1)
-            elif mode == 'valid':
-                self.use_index = np.arange(validindex, validindex+self.valid_length, self.pred_length)
-            else: #test
-                self.use_index = np.arange(0, len(self.main_data)-self.seq_length, self.pred_length)
+        if mode == 'train':
+            self.use_index = np.arange(0, len(self.main_data)-self.seq_length, 1)
+        elif mode == 'valid':
+            self.use_index = np.arange(validindex, validindex+self.valid_length, self.pred_length)
+        else: #test
+            self.use_index = np.arange(0, len(self.main_data)-self.seq_length, self.pred_length)
         
     def __getitem__(self, orgindex):
         index = self.use_index[orgindex]
