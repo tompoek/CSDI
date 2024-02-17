@@ -30,6 +30,7 @@ class Traj_Forecasting_Dataset(Dataset):
         self.main_data = df[clean_features].to_numpy()
         mask = np.zeros(self.main_data.shape[0])
         mask[:int(mask_percentage*self.main_data.shape[0])] = 1
+        #TODO: Check reproducibility of random masks
         np.random.Generator(np.random.PCG64(seed=42)).shuffle(mask)
         self.mask_data = np.repeat(mask.reshape(-1,1),repeats=self.main_data.shape[1],axis=1)
         with open(datafolder+'/'+meanstdfile, 'rb') as f:
@@ -78,6 +79,7 @@ class Traj_Imputation_Dataset(Dataset):
         self.eval_length = eval_length
         self.target_dim = target_dim
 
+        #TODO: safely remove legacy mask codes from pm2.5 implementation
         if mode == "train":
             second_list = [0,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
             # seconds excluded from histmask (since they are used for creating missing patterns in test dataset)
