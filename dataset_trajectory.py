@@ -112,6 +112,10 @@ class Traj_Imputation_Dataset(Dataset):
                  clean_features,
                  eval_length=10, target_dim=3, validindex=0,
                  mode="train"):
+        self.a_min = -8
+        self.a_max = 5
+        self.time_window = 20 # in 0.1s
+        #TODO: change eval_length to time_window (currently only supports eval_length=10)
         self.eval_length = eval_length
         self.target_dim = target_dim
 
@@ -146,9 +150,15 @@ class Traj_Imputation_Dataset(Dataset):
                             usecols=noisy_features,
                             skiprows=range(1,1+start_segment_idx), nrows=local_time_idx-start_segment_idx,
                             )
-        #TODO: detect outliers within (2secs) time window
-        df_gt[df_gt['position_based_accer'] < -8] = np.nan # outlier threshold defined by waymo_processed paper
-        df_gt[df_gt['position_based_accer'] > 5] = np.nan # outlier threshold defined by waymo_processed paper
+        accel_too_low = (df_gt['position_based_accer'] < self.a_min).values
+        accel_too_high = (df_gt['position_based_accer'] > self.a_max).values
+        noisy_points = np.any([accel_too_low,accel_too_high],axis=0)
+        noisy_time_windows = noisy_points
+        # detect outliers within +/- half of time window
+        for i in np.where(noisy_points)[0]:
+            noisy_time_windows[max(i-int(self.time_window/2),0) : min(i+int(self.time_window/2),noisy_time_windows.shape[0])] = True
+        df_gt.loc[noisy_time_windows, noisy_features] = np.nan
+
         start_date_hour_minute = '2017-01-01T00:00:' # arbitrarily set a start time
         df['datetime'] = np.datetime64(start_date_hour_minute+'00.1') + pd.to_timedelta(df['local_time'], unit='S')
         df.drop(['local_time'],axis=1,inplace=True)
