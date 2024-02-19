@@ -30,8 +30,7 @@ class Traj_Forecasting_Dataset(Dataset):
         self.main_data = df[clean_features].to_numpy()
         mask = np.zeros(self.main_data.shape[0])
         mask[:int(mask_percentage*self.main_data.shape[0])] = 1
-        #TODO: Check reproducibility of random masks
-        np.random.Generator(np.random.PCG64(seed=42)).shuffle(mask)
+        np.random.Generator(np.random.PCG64(seed=42)).shuffle(mask) # this will make the mask reproducible
         self.mask_data = np.repeat(mask.reshape(-1,1),repeats=self.main_data.shape[1],axis=1)
         with open(datafolder+'/'+meanstdfile, 'rb') as f:
             self.mean_data, self.std_data = pickle.load(f)
