@@ -269,8 +269,10 @@ class CSDI_Traj_Imputation(CSDI_base):
         observed_mask = batch["observed_mask"].to(self.device).float()
         observed_tp = batch["timepoints"].to(self.device).float()
         gt_mask = batch["gt_mask"].to(self.device).float()
-        cut_length = batch["cut_length"].to(self.device).long()
-        for_pattern_mask = batch["hist_mask"].to(self.device).float()
+        # cut_length = batch["cut_length"].to(self.device).long() #TODO: remove this line
+        cut_length = torch.zeros(len(observed_data)).long().to(self.device)
+        # for_pattern_mask = batch["hist_mask"].to(self.device).float() #TODO: remove this line
+        for_pattern_mask = observed_mask
 
         observed_data = observed_data.permute(0, 2, 1)
         observed_mask = observed_mask.permute(0, 2, 1)
