@@ -110,6 +110,8 @@ class Traj_Imputation_Dataset(Dataset):
                             usecols=noisy_features,
                             skiprows=range(1,1+start_segment_idx), nrows=local_time_idx-start_segment_idx,
                             )
+
+        #TODO: generate noises randomly, instead of using outliers detection
         accel_too_low = (df_gt['position_based_accer'] < self.a_min).values
         accel_too_high = (df_gt['position_based_accer'] > self.a_max).values
         noisy_points = np.any([accel_too_low,accel_too_high],axis=0)
