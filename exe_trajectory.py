@@ -7,7 +7,7 @@ import os
 import pandas as pd
 import pickle
 
-method = 'forecasting'
+method = 'imputation'
 default_config = "base_forecasting.yaml" if method=='forecasting' else "base.yaml"
 #TODO: use v3 for clean data, v1 for noisy data
 datafolder='/home/tompoek/waymo-processed/v1/Selected-Car-Following-CF-pairs-and-their-trajectories'

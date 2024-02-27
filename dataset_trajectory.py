@@ -258,7 +258,7 @@ def get_dataloader(batch_size, method, device, mode,
                                            meanstdfile=meanstdfile,
                                            noisy_features=noisy_features, clean_features=clean_features)
     else:
-        dataset = Traj_Imputation_Dataset(mode=mode, validindex=validindex,
+        dataset = Traj_Imputation_Dataset(mode=mode,
                                           start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
                                           datafolder=datafolder, datafile=datafile,
                                           noisy_features=noisy_features, clean_features=clean_features)
