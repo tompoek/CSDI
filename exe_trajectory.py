@@ -10,7 +10,7 @@ import pickle
 method = 'imputation'
 default_config = "base_forecasting.yaml" if method=='forecasting' else "base.yaml"
 #TODO: use v3 for clean data, v1 for noisy data
-datafolder='/home/tompoek/waymo-processed/v1/Selected-Car-Following-CF-pairs-and-their-trajectories'
+datafolder='/home/ubuntu/waymo-processed/v1/Selected-Car-Following-CF-pairs-and-their-trajectories'
 # datafile='all_segment_paired_car_following_trajectory(position-based, speed-based, processed).csv'
 datafile='tail_5segments.csv'
 meanstdfile = 'mean_std.pk'
