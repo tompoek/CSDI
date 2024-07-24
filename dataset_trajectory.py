@@ -26,7 +26,7 @@ class Traj_Forecasting_Dataset(Dataset):
                         usecols=['local_time']+clean_features,
                         skiprows=range(1,1+start_segment_idx), nrows=local_time_idx-start_segment_idx,
                         )
-        df[['processed_position']] -= df[['processed_position']].iloc[0] # set all segments' initial position to 0
+        df[['filter_pos']] -= df[['filter_pos']].iloc[0] # set all segments' initial position to 0
         self.main_data = df[clean_features].to_numpy()
         mask = np.zeros(self.main_data.shape[0])
         mask[:int(mask_percentage*self.main_data.shape[0])] = 1

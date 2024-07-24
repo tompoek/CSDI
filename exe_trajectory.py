@@ -9,13 +9,12 @@ import pickle
 
 method = 'imputation'
 default_config = "base_forecasting.yaml" if method=='forecasting' else "base.yaml"
-#TODO: use v3 for clean data, v1 for noisy data
-datafolder='/home/ubuntu/waymo-processed/v1/Selected-Car-Following-CF-pairs-and-their-trajectories'
-# datafile='all_segment_paired_car_following_trajectory(position-based, speed-based, processed).csv'
+datafolder='/home/ubuntu/waymo-processed'
+# datafile='all_segments.csv'
 datafile='tail_5segments.csv'
 meanstdfile = 'mean_std.pk'
-noisy_features = ['position_based_position','position_based_speed','position_based_accer']
-clean_features = ['processed_position','processed_speed','processed_accer']
+v1_noisy_features = ['position_based_position','position_based_speed','position_based_accer']
+v3_clean_features = ['filter_pos','filter_speed','filter_accer']
 
 from dataset_trajectory import get_dataloader
 from main_model import CSDI_Traj_Imputation, CSDI_Traj_Forecasting
@@ -88,7 +87,7 @@ for local_time_idx in range(1, local_time_np.shape[0]):
             mode="test",
             start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
             datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
-            noisy_features=noisy_features, clean_features=clean_features
+            noisy_features=v1_noisy_features, clean_features=v3_clean_features
         )
         evaluator.evaluate_segment(model, test_loader, segment_id)
 
@@ -103,7 +102,7 @@ for local_time_idx in range(1, local_time_np.shape[0]):
                 mode="test",
                 start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
                 datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
-                noisy_features=noisy_features, clean_features=clean_features
+                noisy_features=v1_noisy_features, clean_features=v3_clean_features
             )
             evaluator.evaluate_segment(model, test_loader, segment_id)
         else:
@@ -113,14 +112,14 @@ for local_time_idx in range(1, local_time_np.shape[0]):
                 mode="train",
                 start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
                 datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
-                noisy_features=noisy_features, clean_features=clean_features
+                noisy_features=v1_noisy_features, clean_features=v3_clean_features
             )
             valid_loader = get_dataloader(
                 config["train"]["batch_size"], method=method, device=args.device,
                 mode="valid",
                 start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
                 datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
-                noisy_features=noisy_features, clean_features=clean_features
+                noisy_features=v1_noisy_features, clean_features=v3_clean_features
             )
             train(model, config["train"], train_loader, valid_loader=valid_loader, foldername=foldername)
 
