@@ -7,15 +7,16 @@ import torch
 
 class Traj_Forecasting_Dataset(Dataset):
     def __init__(self,
-                 start_segment_idx, local_time_idx,
+                 mode,
                  datafolder,
                  datafile,
                  meanstdfile,
                  noisy_features,
                  clean_features,
+                 id_columns,
+                 ids,
                  validindex=0,
-                 mask_percentage=0.5,
-                 mode="train"):
+                 mask_percentage=0.5):
 
         self.pred_length = 10
         self.history_length = self.pred_length*4
@@ -23,9 +24,11 @@ class Traj_Forecasting_Dataset(Dataset):
         self.valid_length = self.pred_length*2
 
         df = pd.read_csv(datafolder+'/'+datafile,
-                        usecols=['local_time']+clean_features,
-                        skiprows=range(1,1+start_segment_idx), nrows=local_time_idx-start_segment_idx,
+                        usecols=id_columns+['local_time']+clean_features,
                         )
+        for id_col in id_columns:
+            df = df[df[id_col]==ids[id_col]]
+        df.drop(labels=id_columns,axis=1,inplace=True)
         df[['filter_pos']] -= df[['filter_pos']].iloc[0] # set all segments' initial position to 0
         self.main_data = df[clean_features].to_numpy()
         mask = np.zeros(self.main_data.shape[0])
@@ -64,13 +67,14 @@ class Traj_Forecasting_Dataset(Dataset):
 
 class Traj_Imputation_Dataset(Dataset):
     def __init__(self,
-                 start_segment_idx, local_time_idx,
+                 mode,
                  datafolder,
                  datafile,
                  noisy_features,
                  clean_features,
-                 eval_length=20, target_dim=3,
-                 mode="train"):
+                 id_columns,
+                 ids,
+                 eval_length=20, target_dim=3):
         self.a_min = -8
         self.a_max = 5
         self.time_window = 20 # in 0.1s
@@ -103,13 +107,16 @@ class Traj_Imputation_Dataset(Dataset):
         # self.cut_length = []  # excluded from evaluation targets
 
         df = pd.read_csv(datafolder+'/'+datafile,
-                         usecols=['local_time']+clean_features,
-                         skiprows=range(1,1+start_segment_idx), nrows=local_time_idx-start_segment_idx,
+                         usecols=id_columns+['local_time']+clean_features,
                          )
         df_gt = pd.read_csv(datafolder+'/'+datafile,
-                            usecols=noisy_features,
-                            skiprows=range(1,1+start_segment_idx), nrows=local_time_idx-start_segment_idx,
+                            usecols=id_columns+noisy_features,
                             )
+        for id_col in id_columns:
+            df = df[df[id_col]==ids[id_col]]
+            df_gt = df_gt[df_gt[id_col]==ids[id_col]]
+        df.drop(labels=id_columns,axis=1,inplace=True)
+        df_gt.drop(labels=id_columns,axis=1,inplace=True)
 
         #TODO: generate noises randomly, instead of using outliers detection
         accel_too_low = (df_gt['position_based_accer'] < self.a_min).values
@@ -123,7 +130,7 @@ class Traj_Imputation_Dataset(Dataset):
         df_gt.loc[noisy_time_windows, noisy_features] = np.nan
 
         start_date_hour_minute = '2017-01-01T00:00:' # arbitrarily set a start time
-        df['datetime'] = np.datetime64(start_date_hour_minute+'00.1') + pd.to_timedelta(df['local_time'], unit='S')
+        df['datetime'] = np.datetime64(start_date_hour_minute+'00.1') + pd.to_timedelta(df['local_time'], unit='s')
         df.drop(['local_time'],axis=1,inplace=True)
 
         df_gt['datetime'] = df['datetime']
@@ -246,22 +253,22 @@ class Traj_Imputation_Dataset(Dataset):
 
 
 def get_dataloader(batch_size, method, device, mode,
-                   start_segment_idx, local_time_idx,
                    datafolder, datafile, meanstdfile, noisy_features, clean_features,
+                   id_columns, ids,
                    validindex=0):
     
     shuffle = True if mode=="train" else False
     if method=='forecasting':
         dataset = Traj_Forecasting_Dataset(mode=mode,
-                                           start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
                                            datafolder=datafolder, datafile=datafile,
                                            meanstdfile=meanstdfile,
-                                           noisy_features=noisy_features, clean_features=clean_features)
+                                           noisy_features=noisy_features, clean_features=clean_features,
+                                           id_columns=id_columns, ids=ids)
     else:
         dataset = Traj_Imputation_Dataset(mode=mode,
-                                          start_segment_idx=start_segment_idx, local_time_idx=local_time_idx,
                                           datafolder=datafolder, datafile=datafile,
-                                          noisy_features=noisy_features, clean_features=clean_features)
+                                          noisy_features=noisy_features, clean_features=clean_features,
+                                          id_columns=id_columns, ids=ids)
     data_loader = DataLoader(
         dataset, batch_size=batch_size, num_workers=1, shuffle=shuffle
     )
