@@ -57,11 +57,6 @@ os.makedirs(foldername, exist_ok=True)
 with open(foldername + "config.json", "w") as f:
     json.dump(config, f, indent=4)
 
-if method=='forecasting':
-    model = CSDI_Traj_Forecasting(config, args.device).to(args.device)
-else:
-    model = CSDI_Traj_Imputation(config, args.device).to(args.device)
-
 with open(datafolder+'/'+meanstdfile, 'rb') as f:
     mean_data, std_data = pickle.load(f)
     mean_data = torch.from_numpy(mean_data).to(args.device).float()
@@ -74,29 +69,37 @@ else:
     evaluator = Evaluator(foldername, args.nsample)
 
 
-test_ratio = 0.2
+random_state = 100
 unique_ids = pd.read_csv(datafolder+'/'+datafile, usecols=id_columns).drop_duplicates()
-train_ids, test_ids = train_test_split(unique_ids, test_size=test_ratio, random_state=1)
+train_ids = pd.read_csv(datafolder+'/'+'train_ids_random_state_'+str(random_state)+'.csv')
+test_ids = pd.read_csv(datafolder+'/'+'test_ids_random_state_'+str(random_state)+'.csv')
 
-for ids in train_ids.iterrows(): # train model
-        print(f"Training at Segment No. {ids[1]['segment_id']}")
-        train_loader = get_dataloader(
-            config["train"]["batch_size"], method=method, device=args.device,
-            mode="train",
-            datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
-            noisy_features=v1_noisy_features, clean_features=v3_clean_features,
-            id_columns=id_columns, ids=ids[1]
-        )
-        valid_loader = get_dataloader(
-            config["train"]["batch_size"], method=method, device=args.device,
-            mode="valid",
-            datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
-            noisy_features=v1_noisy_features, clean_features=v3_clean_features,
-            id_columns=id_columns, ids=ids[1]
-        )
-        train(model, config["train"], train_loader, valid_loader=valid_loader, foldername=foldername)
+modelfolder = '' # or 'traj_forecasting_20240731_121105'
+
+if modelfolder == '':
+    model = CSDI_Traj_Forecasting(config, args.device).to(args.device) if method=='forecasting' else CSDI_Traj_Imputation(config, args.device).to(args.device)
+    for ids in train_ids.iterrows(): # train model
+            print(f"Training at Segment No. {ids[1]['segment_id']} Local Vehicle ID: {ids[1]['local_veh_id']}")
+            train_loader = get_dataloader(
+                config["train"]["batch_size"], method=method, device=args.device,
+                mode="train",
+                datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
+                noisy_features=v1_noisy_features, clean_features=v3_clean_features,
+                id_columns=id_columns, ids=ids[1]
+            )
+            valid_loader = get_dataloader(
+                config["train"]["batch_size"], method=method, device=args.device,
+                mode="valid",
+                datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
+                noisy_features=v1_noisy_features, clean_features=v3_clean_features,
+                id_columns=id_columns, ids=ids[1]
+            )
+            train(model, config["train"], train_loader, valid_loader=valid_loader, foldername=foldername)
+else:
+    model = torch.load('./save/'+modelfolder+'/model.pth').to(args.device)
+
 for ids in test_ids.iterrows(): # test model
-        print(f"Testing at Segment No. {ids[1]['segment_id']}")
+        print(f"Testing at Segment No. {ids[1]['segment_id']} Local Vehicle ID: {ids[1]['local_veh_id']}")
         test_loader = get_dataloader(
             config["train"]["batch_size"], method=method, device=args.device,
             mode="test",
@@ -104,12 +107,6 @@ for ids in test_ids.iterrows(): # test model
             noisy_features=v1_noisy_features, clean_features=v3_clean_features,
             id_columns=id_columns, ids=ids[1]
         )
-        evaluator.evaluate_segment(model, test_loader, ids[1]['segment_id'])
+        evaluator.evaluate_segment(model, test_loader, ids[1]['segment_id'], ids[1]['local_veh_id'])
 
 evaluator.save_evaluated_metrics_of_all_segments()
-
-# if args.modelfolder == "":
-#     train(model, config["train"], train_loader, valid_loader=valid_loader, foldername=foldername)
-# else:
-#     model.load_state_dict(torch.load("./save/" + args.modelfolder + "/model.pth"))
-

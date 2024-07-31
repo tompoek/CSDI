@@ -71,7 +71,7 @@ def train(
                 )
 
     if foldername != "":
-        torch.save(model.state_dict(), output_path)
+        torch.save(model, output_path)
 
 
 def quantile_loss(target, forecast, q: float, eval_points) -> float:
@@ -224,7 +224,7 @@ class Evaluator():
         self.mae_total = 0
         self.evalpoints_total = 0
 
-    def evaluate_segment(self, model, test_loader, segment_id):
+    def evaluate_segment(self, model, test_loader, segment_id, local_veh_id):
         with torch.no_grad():
             model.eval()
 
@@ -269,7 +269,7 @@ class Evaluator():
                         },
                         refresh=True,
                     )
-            self.save_generated_outputs_of_one_segment(segment_id=segment_id,
+            self.save_generated_outputs_of_one_segment(segment_id=segment_id,local_veh_id=local_veh_id,
                                                        all_target=all_target,
                                                        all_evalpoint=all_evalpoint,
                                                        all_observed_point=all_observed_point,
@@ -277,14 +277,14 @@ class Evaluator():
                                                        all_generated_samples=all_generated_samples)
 
     def save_generated_outputs_of_one_segment(self,
-                                              segment_id,
+                                              segment_id,local_veh_id,
                                               all_target,
                                               all_evalpoint,
                                               all_observed_point,
                                               all_observed_time,
                                               all_generated_samples): # for visualization
         with open(
-            self.foldername + "/segment" + str(segment_id) + "_generated_outputs_nsample" + str(self.nsample) + ".pk", "wb"
+            self.foldername + "/seg" + str(segment_id) + "_localvehid" + str(local_veh_id) + "_nsample" + str(self.nsample) + ".pk", "wb"
         ) as f:
             all_target = torch.cat(all_target, dim=0)
             all_evalpoint = torch.cat(all_evalpoint, dim=0)

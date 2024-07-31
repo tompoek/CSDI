@@ -7,7 +7,6 @@ train:
   lr: 1.0e-3
   itr_per_epoch: 1.0e+8
 
-
 diffusion:
   layers: 4 
   channels: 64 
