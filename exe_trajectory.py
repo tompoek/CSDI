@@ -12,7 +12,6 @@ method = 'forecasting'
 default_config = "base_forecasting.yaml" if method=='forecasting' else "base.yaml"
 datafolder='/home/ubuntu/waymo-processed'
 datafile='all_segments.csv'
-# datafile='tail_5segments.csv'
 meanstdfile = 'mean_std.pk'
 v1_noisy_features = ['position_based_position','position_based_speed','position_based_accer']
 v3_clean_features = ['filter_pos','filter_speed','filter_accer']
@@ -70,15 +69,21 @@ else:
 
 
 random_state = 100
-unique_ids = pd.read_csv(datafolder+'/'+datafile, usecols=id_columns).drop_duplicates()
+full_dataset_ids = pd.read_csv(datafolder+'/'+datafile, usecols=id_columns).drop_duplicates()
 train_ids = pd.read_csv(datafolder+'/'+'train_ids_random_state_'+str(random_state)+'.csv')
 test_ids = pd.read_csv(datafolder+'/'+'test_ids_random_state_'+str(random_state)+'.csv')
 
-modelfolder = '' # or 'traj_forecasting_20240731_121105'
+modelfolder = '' # or 'traj_forecasting_20240731_172548'
+do_training = True
+do_testing = True
 
 if modelfolder == '':
     model = CSDI_Traj_Forecasting(config, args.device).to(args.device) if method=='forecasting' else CSDI_Traj_Imputation(config, args.device).to(args.device)
-    for ids in train_ids.iterrows(): # train model
+else:
+    model = torch.load('./save/'+modelfolder+'/model.pth').to(args.device)
+
+if do_training:
+    for ids in full_dataset_ids.iterrows(): # train model
             print(f"Training at Segment No. {ids[1]['segment_id']} Local Vehicle ID: {ids[1]['local_veh_id']}")
             train_loader = get_dataloader(
                 config["train"]["batch_size"], method=method, device=args.device,
@@ -95,18 +100,17 @@ if modelfolder == '':
                 id_columns=id_columns, ids=ids[1]
             )
             train(model, config["train"], train_loader, valid_loader=valid_loader, foldername=foldername)
-else:
-    model = torch.load('./save/'+modelfolder+'/model.pth').to(args.device)
 
-for ids in test_ids.iterrows(): # test model
-        print(f"Testing at Segment No. {ids[1]['segment_id']} Local Vehicle ID: {ids[1]['local_veh_id']}")
-        test_loader = get_dataloader(
-            config["train"]["batch_size"], method=method, device=args.device,
-            mode="test",
-            datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
-            noisy_features=v1_noisy_features, clean_features=v3_clean_features,
-            id_columns=id_columns, ids=ids[1]
-        )
-        evaluator.evaluate_segment(model, test_loader, ids[1]['segment_id'], ids[1]['local_veh_id'])
+if do_testing:
+    for ids in test_ids.iterrows(): # test model
+            print(f"Testing at Segment No. {ids[1]['segment_id']} Local Vehicle ID: {ids[1]['local_veh_id']}")
+            test_loader = get_dataloader(
+                config["train"]["batch_size"], method=method, device=args.device,
+                mode="test",
+                datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
+                noisy_features=v1_noisy_features, clean_features=v3_clean_features,
+                id_columns=id_columns, ids=ids[1]
+            )
+            evaluator.evaluate_segment(model, test_loader, ids[1]['segment_id'], ids[1]['local_veh_id'])
 
 evaluator.save_evaluated_metrics_of_all_segments()
