@@ -70,8 +70,8 @@ else:
 
 random_state = 100
 full_dataset_ids = pd.read_csv(datafolder+'/'+datafile, usecols=id_columns).drop_duplicates()
-train_ids = pd.read_csv(datafolder+'/'+'train_ids_random_state_'+str(random_state)+'.csv')
-test_ids = pd.read_csv(datafolder+'/'+'test_ids_random_state_'+str(random_state)+'.csv')
+train_ids = pd.read_csv(datafolder+'/'+'train_ids_random_state_'+str(random_state)+'_split9to1.csv')
+test_ids = pd.read_csv(datafolder+'/'+'test_ids_random_state_'+str(random_state)+'_split9to1.csv')
 
 modelfolder = '' # or 'traj_forecasting_20240731_172548'
 do_training = True
