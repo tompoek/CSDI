@@ -24,13 +24,13 @@ class Traj_Forecasting_Dataset(Dataset):
         self.valid_length = self.pred_length*2
 
         df = pd.read_csv(datafolder+'/'+datafile,
-                        usecols=id_columns+['local_time']+clean_features,
+                        usecols=id_columns+['local_time']+noisy_features,
                         )
         for id_col in id_columns:
             df = df[df[id_col]==ids[id_col]]
         df.drop(labels=id_columns,axis=1,inplace=True)
-        df[['filter_pos']] -= df[['filter_pos']].iloc[0] # set all segments' initial position to 0
-        self.main_data = df[clean_features].to_numpy()
+        df[['position_based_position']] -= df[['position_based_position']].iloc[0] # set all segments' initial position to 0
+        self.main_data = df[noisy_features].to_numpy()
         mask = np.zeros(self.main_data.shape[0])
         mask[:int(mask_percentage*self.main_data.shape[0])] = 1
         np.random.Generator(np.random.PCG64(seed=42)).shuffle(mask) # this will make the mask reproducible

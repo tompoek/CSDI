@@ -73,7 +73,7 @@ full_dataset_ids = pd.read_csv(datafolder+'/'+datafile, usecols=id_columns).drop
 train_ids = pd.read_csv(datafolder+'/'+'train_ids_random_state_'+str(random_state)+'_split9to1.csv')
 test_ids = pd.read_csv(datafolder+'/'+'test_ids_random_state_'+str(random_state)+'_split9to1.csv')
 
-modelfolder = '' # or 'traj_forecasting_20240731_172548'
+modelfolder = '' # or 'traj_forecasting_20240808_125128'
 do_training = True
 do_testing = True
 
@@ -84,32 +84,32 @@ else:
 
 if do_training:
     for ids in full_dataset_ids.iterrows(): # train model
-            print(f"Training at Segment No. {ids[1]['segment_id']} Local Vehicle ID: {ids[1]['local_veh_id']}")
-            train_loader = get_dataloader(
-                config["train"]["batch_size"], method=method, device=args.device,
-                mode="train",
-                datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
-                noisy_features=v1_noisy_features, clean_features=v3_clean_features,
-                id_columns=id_columns, ids=ids[1]
-            )
-            valid_loader = get_dataloader(
-                config["train"]["batch_size"], method=method, device=args.device,
-                mode="valid",
-                datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
-                noisy_features=v1_noisy_features, clean_features=v3_clean_features,
-                id_columns=id_columns, ids=ids[1]
-            )
-            train(model, config["train"], train_loader, valid_loader=valid_loader, foldername=foldername)
+        print(f"Training at Segment No. {ids[1]['segment_id']} Local Vehicle ID: {ids[1]['local_veh_id']}")
+        train_loader = get_dataloader(
+            config["train"]["batch_size"], method=method, device=args.device,
+            mode="train",
+            datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
+            noisy_features=v1_noisy_features, clean_features=v3_clean_features,
+            id_columns=id_columns, ids=ids[1]
+        )
+        valid_loader = get_dataloader(
+            config["train"]["batch_size"], method=method, device=args.device,
+            mode="valid",
+            datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
+            noisy_features=v1_noisy_features, clean_features=v3_clean_features,
+            id_columns=id_columns, ids=ids[1]
+        )
+        train(model, config["train"], train_loader, valid_loader=valid_loader, foldername=foldername)
 
 if do_testing:
     for ids in test_ids.iterrows(): # test model
-            print(f"Testing at Segment No. {ids[1]['segment_id']} Local Vehicle ID: {ids[1]['local_veh_id']}")
-            test_loader = get_dataloader(
-                config["train"]["batch_size"], method=method, device=args.device,
-                mode="test",
-                datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
-                noisy_features=v1_noisy_features, clean_features=v3_clean_features,
-                id_columns=id_columns, ids=ids[1]
-            )
-            evaluator.evaluate_segment(model, test_loader, ids[1]['segment_id'], ids[1]['local_veh_id'])
+        print(f"Testing at Segment No. {ids[1]['segment_id']} Local Vehicle ID: {ids[1]['local_veh_id']}")
+        test_loader = get_dataloader(
+            config["train"]["batch_size"], method=method, device=args.device,
+            mode="test",
+            datafolder=datafolder, datafile=datafile, meanstdfile=meanstdfile,
+            noisy_features=v1_noisy_features, clean_features=v3_clean_features,
+            id_columns=id_columns, ids=ids[1]
+        )
+        evaluator.evaluate_segment(model, test_loader, ids[1]['segment_id'], ids[1]['local_veh_id'])
     evaluator.save_evaluated_metrics_of_all_segments()
