@@ -112,5 +112,4 @@ if do_testing:
                 id_columns=id_columns, ids=ids[1]
             )
             evaluator.evaluate_segment(model, test_loader, ids[1]['segment_id'], ids[1]['local_veh_id'])
-
-evaluator.save_evaluated_metrics_of_all_segments()
+    evaluator.save_evaluated_metrics_of_all_segments()
