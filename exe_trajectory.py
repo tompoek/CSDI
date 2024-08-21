@@ -8,7 +8,7 @@ import pandas as pd
 import pickle
 from sklearn.model_selection import train_test_split
 
-method = 'forecasting'
+method = 'imputation'
 default_config = "base_forecasting.yaml" if method=='forecasting' else "base.yaml"
 datafolder='/home/ubuntu/waymo-processed'
 datafile='all_segments.csv'
