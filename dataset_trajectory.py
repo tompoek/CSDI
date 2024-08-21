@@ -96,20 +96,21 @@ class Traj_Imputation_Dataset(Dataset):
         df.drop(labels=id_columns,axis=1,inplace=True)
         df_gt.drop(labels=id_columns,axis=1,inplace=True)
 
-        #UPDATED: instead of masking outliers by acceleration, mask any pos/spd/acc values that are different in clean vs noisy
-        # accel_too_low = (df_gt['position_based_accer'] < self.a_min).values
-        # accel_too_high = (df_gt['position_based_accer'] > self.a_max).values
-        # noisy_points = np.any([accel_too_low,accel_too_high],axis=0)
-        # noisy_time_windows = noisy_points
-        # # detect outliers within +/- half of time window
-        # for i in np.where(noisy_points)[0]:
-        #     noisy_time_windows[max(i-int(self.time_window/2),0) : min(i+int(self.time_window/2),noisy_time_windows.shape[0])] = True
-        diff_pos = abs(df['filter_pos']-df_gt['position_based_position']) > 2
-        diff_spd = abs(df['filter_speed']-df_gt['position_based_speed']) > 0.5
-        diff_acc = abs(df['filter_accer']-df_gt['position_based_accer']) > 1
-        diff_clean_noisy = np.any([diff_pos,diff_spd,diff_acc], axis=0)
-        # df.loc[diff_clean_noisy, clean_features] = np.nan
-        df_gt.loc[diff_clean_noisy, noisy_features] = np.nan
+        #OUTLIER DETECTION 1: mask outliers by acceleration exceeding thresholds defined by Hu.
+        accel_too_low = (df_gt['position_based_accer'] < self.a_min).values
+        accel_too_high = (df_gt['position_based_accer'] > self.a_max).values
+        noisy_points = np.any([accel_too_low,accel_too_high],axis=0)
+        noisy_time_windows = noisy_points
+        # detect outliers within +/- half of time window
+        for i in np.where(noisy_points)[0]:
+            noisy_time_windows[max(i-int(self.time_window/2),0) : min(i+int(self.time_window/2),noisy_time_windows.shape[0])] = True
+        df_gt.loc[noisy_time_windows, noisy_features] = np.nan
+        # #OUTLIER DETECTION 2: mask any pos/spd/acc values that are different in clean vs noisy
+        # diff_pos = abs(df['filter_pos']-df_gt['position_based_position']) > 2
+        # diff_spd = abs(df['filter_speed']-df_gt['position_based_speed']) > 0.5
+        # diff_acc = abs(df['filter_accer']-df_gt['position_based_accer']) > 1
+        # diff_clean_noisy = np.any([diff_pos,diff_spd,diff_acc], axis=0)
+        # df_gt.loc[diff_clean_noisy, noisy_features] = np.nan
 
         start_date_hour_minute = '2017-01-01T00:00:' # arbitrarily set a start time
         df['datetime'] = np.datetime64(start_date_hour_minute+'00.1') + pd.to_timedelta(df['local_time'], unit='s')
