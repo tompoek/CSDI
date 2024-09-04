@@ -223,6 +223,12 @@ class Evaluator():
         self.mse_total = 0
         self.mae_total = 0
         self.evalpoints_total = 0
+        self.mse_pos = 0
+        self.mse_spd = 0
+        self.mse_acc = 0
+        self.mae_pos = 0
+        self.mae_spd = 0
+        self.mae_acc = 0
 
     def evaluate_segment(self, model, test_loader, segment_id, local_veh_id):
         with torch.no_grad():
@@ -256,6 +262,15 @@ class Evaluator():
                     mae_current = (
                         torch.abs((samples_median.values - c_target) * eval_points) 
                     ) * self.scaler
+
+                    mse_pos_spd_acc = mse_current.sum(dim=0).sum(dim=0)
+                    mae_pos_spd_acc = mae_current.sum(dim=0).sum(dim=0)
+                    self.mse_pos += mse_pos_spd_acc[0].item()
+                    self.mse_spd += mse_pos_spd_acc[1].item()
+                    self.mse_acc += mse_pos_spd_acc[2].item()
+                    self.mae_pos += mae_pos_spd_acc[0].item()
+                    self.mae_spd += mae_pos_spd_acc[1].item()
+                    self.mae_acc += mae_pos_spd_acc[2].item()
 
                     self.mse_total += mse_current.sum().item()
                     self.mae_total += mae_current.sum().item()
@@ -306,18 +321,30 @@ class Evaluator():
             )
 
     def save_evaluated_metrics_of_all_segments(self):
-        reserved_metric = 0.
         with open(
             self.foldername + "/result_nsample" + str(self.nsample) + ".pk", "wb"
         ) as f:
+            RMSE_average = np.sqrt(self.mse_total / self.evalpoints_total)
+            MAE_average = self.mae_total / self.evalpoints_total
+            RMSE_pos = np.sqrt(self.mse_pos / self.evalpoints_total * 3) # 3 features/attributes: position, speed, acceleration
+            RMSE_spd = np.sqrt(self.mse_spd / self.evalpoints_total * 3) # 3 features/attributes: position, speed, acceleration
+            RMSE_acc = np.sqrt(self.mse_acc / self.evalpoints_total * 3) # 3 features/attributes: position, speed, acceleration
+            MAE_pos = self.mae_pos / self.evalpoints_total * 3 # 3 features/attributes: position, speed, acceleration
+            MAE_spd = self.mae_spd / self.evalpoints_total * 3 # 3 features/attributes: position, speed, acceleration
+            MAE_acc = self.mae_acc / self.evalpoints_total * 3 # 3 features/attributes: position, speed, acceleration
             pickle.dump(
                 [
-                    np.sqrt(self.mse_total / self.evalpoints_total),
-                    self.mae_total / self.evalpoints_total,
-                    reserved_metric,
+                    RMSE_average,
+                    MAE_average,
+                    RMSE_pos,
+                    RMSE_spd,
+                    RMSE_acc,
+                    MAE_pos,
+                    MAE_spd,
+                    MAE_acc,
                 ],
                 f,
             )
-            print("RMSE:", np.sqrt(self.mse_total / self.evalpoints_total))
-            print("MAE:", self.mae_total / self.evalpoints_total)
+            print("RMSE averaged: ", RMSE_average, ", RMSE Position: ", RMSE_pos, "m, RMSE Speed: ", RMSE_spd, "m/s, RMSE Acceleration: ", RMSE_acc, "m/s^2")
+            print(" MAE averaged: ", MAE_average, ",  MAE Position: ", MAE_pos, "m,  MAE Speed: ", MAE_spd, "m/s,  MAE Acceleration: ", MAE_acc, "m/s^2")
             

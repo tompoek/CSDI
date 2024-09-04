@@ -73,8 +73,8 @@ full_dataset_ids = pd.read_csv(datafolder+'/'+datafile, usecols=id_columns).drop
 train_ids = pd.read_csv(datafolder+'/'+'train_ids_random_state_'+str(random_state)+'_split9to1.csv')
 test_ids = pd.read_csv(datafolder+'/'+'test_ids_random_state_'+str(random_state)+'_split9to1.csv')
 
-modelfolder = '' # or 'traj_forecasting_20240808_125128'
-do_training = True
+modelfolder = 'traj_imputation_20240904_093900' # '' or specified folder... if specified, config refer to the config.json in this folder, not the newly generated folder
+do_training = False
 do_testing = True
 
 if modelfolder == '':
