@@ -73,8 +73,8 @@ full_dataset_ids = pd.read_csv(datafolder+'/'+datafile, usecols=id_columns).drop
 train_ids = pd.read_csv(datafolder+'/'+'train_ids_random_state_'+str(random_state)+'_split9to1.csv')
 test_ids = pd.read_csv(datafolder+'/'+'test_ids_random_state_'+str(random_state)+'_split9to1.csv')
 
-modelfolder = 'traj_imputation_20240904_093900' # '' or specified folder... if specified, config refer to the config.json in this folder, not the newly generated folder
-do_training = False
+modelfolder = '' # '' or specified folder... if specified, config refer to the config.json in this folder, not the newly generated folder
+do_training = True
 do_testing = True
 
 if modelfolder == '':
@@ -83,7 +83,7 @@ else:
     model = torch.load('./save/'+modelfolder+'/model.pth').to(args.device)
 
 if do_training:
-    for ids in full_dataset_ids.iterrows(): # train model
+    for ids in train_ids.iterrows(): # train model
         print(f"Training at Segment No. {ids[1]['segment_id']} Local Vehicle ID: {ids[1]['local_veh_id']}")
         train_loader = get_dataloader(
             config["train"]["batch_size"], method=method, device=args.device,
