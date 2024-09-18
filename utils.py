@@ -246,6 +246,8 @@ class Evaluator():
                     samples, c_target, eval_points, observed_points, observed_time = output
                     samples = samples.permute(0, 1, 3, 2)  # (B,nsample,L,K)
                     c_target = c_target.permute(0, 2, 1)  # (B,L,K)
+                    samples = samples * self.scaler + self.mean_scaler # inverse standardization here
+                    c_target = c_target * self.scaler + self.mean_scaler # inverse standardization here
                     eval_points = eval_points.permute(0, 2, 1)
                     observed_points = observed_points.permute(0, 2, 1)
 
@@ -258,10 +260,12 @@ class Evaluator():
 
                     mse_current = (
                         ((samples_median.values - c_target) * eval_points) ** 2
-                    ) * (self.scaler ** 2)
+                    ) # inverse standardization already performed
+                    # ) * (self.scaler ** 2) # if inverse standardization was not performed
                     mae_current = (
                         torch.abs((samples_median.values - c_target) * eval_points) 
-                    ) * self.scaler
+                    ) # inverse standardization already performed
+                    # ) * self.scaler # if inverse standardization was not performed
 
                     mse_pos_spd_acc = mse_current.sum(dim=0).sum(dim=0)
                     mae_pos_spd_acc = mae_current.sum(dim=0).sum(dim=0)

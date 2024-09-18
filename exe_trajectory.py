@@ -61,12 +61,8 @@ with open(datafolder+'/'+meanstdfile, 'rb') as f:
     mean_data = torch.from_numpy(mean_data).to(args.device).float()
     std_data = torch.from_numpy(std_data).to(args.device).float()
 
-if method=='forecasting':
-    evaluator = Evaluator(foldername, args.nsample,
-                          mean_scaler=mean_data, scaler=std_data)
-else:
-    evaluator = Evaluator(foldername, args.nsample)
-
+evaluator = Evaluator(foldername, args.nsample,
+                        mean_scaler=mean_data, scaler=std_data)
 
 random_state = 100
 full_dataset_ids = pd.read_csv(datafolder+'/'+datafile, usecols=id_columns).drop_duplicates()

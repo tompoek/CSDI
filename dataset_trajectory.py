@@ -70,6 +70,7 @@ class Traj_Imputation_Dataset(Dataset):
                  mode,
                  datafolder,
                  datafile,
+                 meanstdfile,
                  noisy_features,
                  clean_features,
                  id_columns,
@@ -125,6 +126,10 @@ class Traj_Imputation_Dataset(Dataset):
         # mask values for observed indices are 1
         self.observed_mask = 1 - df.isnull().values
         self.gt_mask = 1 - df_gt.isnull().values
+        df[['filter_pos']] -= df[['filter_pos']].iloc[0] # set all segments' initial position to 0, must do before standardization
+        with open(datafolder+'/'+meanstdfile, 'rb') as f:
+            self.mean_data, self.std_data = pickle.load(f)
+        df = (df - self.mean_data) / self.std_data # standardize dataframe before feeding as observed data
         self.observed_data = (df.fillna(0).values) * self.observed_mask
 
         if mode == "test":
@@ -190,6 +195,7 @@ def get_dataloader(batch_size, method, device, mode,
     else:
         dataset = Traj_Imputation_Dataset(mode=mode,
                                           datafolder=datafolder, datafile=datafile,
+                                          meanstdfile=meanstdfile,
                                           noisy_features=noisy_features, clean_features=clean_features,
                                           id_columns=id_columns, ids=ids)
     data_loader = DataLoader(
