@@ -3,23 +3,23 @@
 
 train:
   epochs: 1
-  batch_size: 194
-  lr: 1.0e-3
+  batch_size: 10
+  lr: 2.0e-2
   itr_per_epoch: 1.0e+8
 
 diffusion:
   layers: 4 
   channels: 64 
   nheads: 8
-  diffusion_embedding_dim: 128
+  diffusion_embedding_dim: 64
   beta_start: 0.0001
   beta_end: 0.5
   num_steps: 50
-  schedule: "quad"
+  schedule: "linear"
   is_linear: False
 
 model:
   is_unconditional: 0
-  timeemb: 128
+  timeemb: 64
   featureemb: 16
   target_strategy: "random"
