@@ -2,7 +2,7 @@
     "train": {
         "epochs": 1,
         "batch_size": 10,
-        "lr": 0.001,
+        "lr": 0.02,
         "itr_per_epoch": 100000000.0
     },
     "diffusion": {
@@ -14,13 +14,12 @@
         "beta_end": 0.5,
         "num_steps": 50,
         "schedule": "quad",
-        "is_linear": true
+        "is_linear": false
     },
     "model": {
         "is_unconditional": false,
         "timeemb": 128,
         "featureemb": 16,
-        "target_strategy": "mix",
-        "num_sample_features": 3
+        "target_strategy": "mix"
     }
 }

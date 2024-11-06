@@ -3,3 +3,4 @@ data/*
 __pycache__/
 save/physio_*
 save/pm25_*
+.vs_code/
